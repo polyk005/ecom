@@ -30,31 +30,16 @@ func (s *Store) GetUserByEmail(email string) (*types.User, error) {
 	return &user, nil
 }
 
-// GetUsers retrieves all users using a raw SQL query and scans them into a slice
 func (s *Store) GetUsers() ([]*types.User, error) {
 	var users []*types.User
 
-	// Execute a raw SQL query
-	rows, err := s.db.Raw("SELECT * FROM users").Rows()
-	if err != nil {
+	if err := s.db.Find(&users).Error; err != nil {
 		return nil, err
 	}
-	defer rows.Close()
-
-	// Iterate over rows and scan them into User structs
-	for rows.Next() {
-		user, err := scanRowIntoUser (rows)
-		if err != nil {
-			return nil, err
-		}
-		users = append(users, user)
-	}
-
 	return users, nil
 }
 
-// scanRowIntoUser  scans a single row into a User struct
-func scanRowIntoUser (rows *sql.Rows) (*types.User, error) {
+func scanRowIntoUser(rows *sql.Rows) (*types.User, error) {
 	user := new(types.User)
 
 	err := rows.Scan(
