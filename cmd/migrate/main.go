@@ -6,7 +6,7 @@ import (
 	"os"
 
 	"github.com/golang-migrate/migrate"
-	"github.com/golang-migrate/migrate/v4/database/mysql"
+	"github.com/golang-migrate/migrate/v4/database/postgres"
 	"github.com/sikozonpc/ecom/config"
 	"github.com/sikozonpc/ecom/db"
 )
@@ -24,10 +24,11 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	defer db.Close(dsn) // Закрытие соединения с БД
 
-	driver, err := mysql.WithInstance(db, &mysql.Config{})
+	driver, err := postgres.WithInstance(db, &postgres.Config{})
 	if err != nil {
-		log.Fatalf(err)
+		log.Fatalf("Error creating driver: %v", err)
 	}
 
 	m, err := migrate.NewWithSourceInstance(
@@ -37,19 +38,25 @@ func main() {
 	)
 
 	if err != nil {
-		log.Fatalf(err)
+		log.Fatalf("Error creating migration instance: %v", err)
 	}
 
-	cmd := os.Args[(len(os.Args) - 1)]
+	if len(os.Args) < 2 {
+		log.Fatal("Command 'up' or 'down' is required")
+	}
+
+	cmd := os.Args[1]
 	if cmd == "up" {
 		if err := m.Up(); err != nil && err != migrate.ErrNoChange {
 			log.Fatal(err)
 		}
-	}
-
-	if cmd == "down" {
+		log.Println("Migrations applied successfully.")
+	} else if cmd == "down" {
 		if err := m.Down(); err != nil && err != migrate.ErrNoChange {
-			log.Fatalf(err)
+			log.Fatal(err)
 		}
+		log.Println("Migrations rolled back successfully.")
+	} else {
+		log.Fatalf("Unknown command: %s. Use 'up' or 'down'.", cmd)
 	}
 }
